@@ -17,7 +17,7 @@ import java.util.Date;
 public class LongSessionService {
     private final static int COOKIE_AGE_SECONDS = 60 * 60 * 24 * 7;
     private final static String HASH_KEY = "kallekula";
-    private final static String HASH_KEY_ALGORITHM = "HmacSHA1";
+    private final static String HASH_KEY_ALGORITHM = "HmacSHA256";
     private final static String HASH_ENCODING = "UTF-8";
     // FIXME CR: Set this to true after testing (but requires HTTPS)
     private final static boolean SECURE_COOKIE = false;
