@@ -3,11 +3,10 @@ import org.apache.commons.codec.binary.Base64;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.ejb.Stateless;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import javax.ws.rs.*;
-import javax.ws.rs.core.Cookie;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.NewCookie;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.core.*;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -26,8 +25,8 @@ public class LongSessionService {
     @GET
     @Path("/login/{userName}")
     @Produces(MediaType.TEXT_PLAIN)
-    public Response doLogin(@PathParam("userName") String userName) throws
-            NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
+    public Response doLogin(@Context HttpServletRequest req, @PathParam("userName") String userName)
+            throws NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
         Date expiryDate = new Date();
         expiryDate.setTime(expiryDate.getTime() + (COOKIE_AGE_SECONDS * 1000));
         String expiryDateString = String.valueOf(expiryDate.getTime());
@@ -36,10 +35,25 @@ public class LongSessionService {
         NewCookie expiryCookie = createCookie("expiry", expiryDateString);
         NewCookie hashCookie = createCookie("hash", hashValue(userName + expiryDateString));
 
+        HttpSession session = req.getSession(true);
+        session.setAttribute("userName", userName);
+        session.setAttribute("loggedIn", Boolean.TRUE);
+
         String response = "Logged in " + userName;
 
         return Response.ok(response, MediaType.TEXT_PLAIN).cookie(userCookie, expiryCookie,
                 hashCookie).build();
+    }
+
+    @GET
+    @Path("/status")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String checkStatus(@Context HttpServletRequest req) {
+        HttpSession session = req.getSession(true);
+        String userName = (String)session.getAttribute("userName");
+        Boolean loggedIn = (Boolean)session.getAttribute("loggedIn");
+
+        return userName + " is logged in: " + loggedIn;
     }
 
     @GET
