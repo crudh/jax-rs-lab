@@ -78,9 +78,6 @@ public class LongSessionService {
             InvalidKeyException, UnsupportedEncodingException {
         String comparisonHash = hashValue(value);
 
-        System.out.println("COMPARISON: " + comparisonHash);
-        System.out.println("ORIGINAL: " + hash);
-
         return comparisonHash.equals(hash);
     }
 
