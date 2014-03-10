@@ -25,6 +25,16 @@ public class LongSessionService {
     private final static boolean SECURE_COOKIE = false;
 
     @GET
+    @Path("/")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String start(@Context HttpServletRequest req) {
+        // Only here to force session creation. doLogin doesn't propagate session id cookie, fix later
+        req.getSession(true);
+
+        return "Start";
+    }
+
+    @GET
     @Path("/login/{userName}")
     @Produces(MediaType.TEXT_PLAIN)
     public Response doLogin(@Context HttpServletRequest req, @PathParam("userName") String userName)
@@ -49,9 +59,37 @@ public class LongSessionService {
     }
 
     @GET
-    @Path("/status")
+    @Path("/session/create")
     @Produces(MediaType.TEXT_PLAIN)
-    public String checkStatus(@Context HttpServletRequest req) {
+    public String createSessionFromCookie(@Context HttpServletRequest req,
+                                          @CookieParam("userName") String userName,
+                                          @CookieParam("expiry") String expiry,
+                                          @CookieParam("hash") String hash) throws NoSuchAlgorithmException,
+            InvalidKeyException, UnsupportedEncodingException {
+        String status;
+        final HttpSession session = req.getSession(true);
+        final Boolean loggedIn = (Boolean)session.getAttribute("loggedIn");
+
+        if (loggedIn == null || loggedIn == Boolean.FALSE) {
+            if (validateValue(userName + expiry, hash)) {
+                session.setAttribute("userName", userName);
+                session.setAttribute("loggedIn", Boolean.TRUE);
+
+                status = "Recreated session login from cookie";
+            } else {
+                status = "Bad cookie";
+            }
+        } else {
+            status = "Already logged in";
+        }
+
+        return status;
+    }
+
+    @GET
+    @Path("/session/status")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String checkSessionStatus(@Context HttpServletRequest req) {
         final HttpSession session = req.getSession(true);
         final String userName = (String)session.getAttribute("userName");
         final Boolean loggedIn = (Boolean)session.getAttribute("loggedIn");
@@ -60,7 +98,7 @@ public class LongSessionService {
     }
 
     @GET
-    @Path("/validate")
+    @Path("/cookie/validate")
     @Produces(MediaType.TEXT_PLAIN)
     public String doValidate(@CookieParam("userName") String userName,
                              @CookieParam("expiry") String expiry,
@@ -74,7 +112,7 @@ public class LongSessionService {
         final Date expiryDate = new Date();
         expiryDate.setTime(COOKIE_AGE_SECONDS * 1000);
 
-        final Cookie cookie = new Cookie(name, value, "/", path);
+        final Cookie cookie = new Cookie(name, value, path, "");
 
         return new NewCookie(cookie, "", COOKIE_AGE_SECONDS, expiryDate, SECURE_COOKIE, true);
     }
